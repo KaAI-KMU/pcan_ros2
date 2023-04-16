@@ -3,6 +3,8 @@ ROS2를 활용한 CAN 데이터 처리
 
 이번 프로젝트는 ROS2로 CAN 데이터를 처리하는 프로젝트이다. [ucwin-can-settings](https://github.com/KaAI-KMU/ucwin-can-settings) 에서는 windows socket programming으로 값을 주고 받았지만 이번엔 ROS를 사용해서 데이터를 송수신할 수 있도록 한다. 
 
+[Screencast from 04-16-2023 11_20_03 PM.webm](https://user-images.githubusercontent.com/111988634/232325315-054e4554-a04f-4d4e-b166-884b2afa20cb.webm)
+
 **개발환경**
 
 - CMake
