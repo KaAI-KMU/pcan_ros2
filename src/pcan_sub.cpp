@@ -11,13 +11,5 @@ PcanSubscriber::PcanSubscriber()
 
 void PcanSubscriber::TopicCallback(const std_msgs::msg::String & msg) const
 {
-  RCLCPP_INFO(this->get_logger(), "I heard: '%s'", msg.data.c_str());
-}
-
-int main(int argc, char * argv[])
-{
-  rclcpp::init(argc, argv);
-  rclcpp::spin(std::make_shared<PcanSubscriber>());
-  rclcpp::shutdown();
-  return 0;
+  RCLCPP_INFO(this->get_logger(), "Received CAN data: %s", msg.data.c_str());
 }

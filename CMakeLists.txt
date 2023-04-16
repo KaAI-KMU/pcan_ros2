@@ -14,12 +14,15 @@ find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
 
 add_executable(talker 
+  src/main_pub.cpp
   src/pcan_pub.cpp
   src/pcan_pub.hpp
 )
+target_link_libraries(talker pcanbasic pthread)
 ament_target_dependencies(talker rclcpp std_msgs)
 
 add_executable(listener 
+  src/main_sub.cpp
   src/pcan_sub.cpp
   src/pcan_sub.hpp
 )
