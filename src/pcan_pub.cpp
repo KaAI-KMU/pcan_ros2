@@ -21,7 +21,7 @@ PcanPublisher::PcanPublisher()
 
 	mPublisher = this->create_publisher<std_msgs::msg::ByteMultiArray>("topic", 10);
 	mTimer = this->create_wall_timer(
-		20ms, std::bind(&PcanPublisher::ReadMessages, this));
+		0ms, std::bind(&PcanPublisher::ReadMessages, this));
 }
 
 PcanPublisher::~PcanPublisher()
@@ -33,8 +33,6 @@ void PcanPublisher::ReadMessages()
 {
 	TPCANStatus stsResult;
 
-	// We read at least one time the queue looking for messages. If a message is found, we look again trying to
-	// find more. If the queue is empty or an error occurr, we get out from the dowhile statement.
 	stsResult = ReadMessage();
 	if (stsResult != PCAN_ERROR_OK && stsResult != PCAN_ERROR_QRCVEMPTY)
 	{
@@ -52,7 +50,6 @@ TPCANStatus PcanPublisher::ReadMessage()
 	TPCANStatus stsResult = CAN_Read(PcanHandle, &CANMsg, &CANTimeStamp);
 	if (stsResult != PCAN_ERROR_QRCVEMPTY)
 		ValidateID(CANMsg);
-	// ProcessMessageCan(CANMsg);
 
 	return stsResult;
 }
@@ -75,13 +72,13 @@ void PcanPublisher::PublishCANMsg(TPCANMsg msg)
 	auto canData = std_msgs::msg::String();
 	id.data = GetIdString(msg.ID, msg.MSGTYPE);
 	canData.data = GetDataString(msg.DATA, msg.MSGTYPE, msg.LEN);
-	RCLCPP_INFO(this->get_logger(), "%s: CAN: %s", id.data.c_str(), canData.data.c_str());
+	RCLCPP_INFO(this->get_logger(), "%s: %s", id.data.c_str(), canData.data.c_str());
 
 	// Publish CAN data
 	auto pubMsg = std_msgs::msg::ByteMultiArray();
 	std::vector<BYTE> data_vector(msg.DATA, msg.DATA + msg.LEN);
-	data_vector.push_back(static_cast<BYTE>((msg.ID >> 8) & 0xFF)); // 상위 8비트 추가
 	data_vector.push_back(static_cast<BYTE>(msg.ID & 0xFF));		// 하위 8비트 추가
+	data_vector.push_back(static_cast<BYTE>((msg.ID >> 8) & 0xFF)); // 상위 8비트 추가
 
 	pubMsg.data = data_vector;
 	mPublisher->publish(pubMsg);

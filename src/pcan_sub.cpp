@@ -16,8 +16,6 @@ void PcanSubscriber::TopicCallback(const std_msgs::msg::ByteMultiArray &msg)
     size_t data_size = msg.data.size();
     std::string id = GetIDString(data_ptr);
 
-    std::cout << "=============================================="
-              << std::endl;
     std::stringstream ss;
     ss << "Received CAN data " << id << ": ";
     for (size_t i = 0; i < data_size; i++)
@@ -29,13 +27,13 @@ void PcanSubscriber::TopicCallback(const std_msgs::msg::ByteMultiArray &msg)
     // Parsing CAN data
     switch (std::stoi(id))
     {
-    case 111:
+    case 111: // Brake
         Parser111(data_ptr);
         break;
-    case 710:
+    case 710: // Steering
         Parser710(data_ptr);
         break;
-    case 711:
+    case 711: // Throttle
         Parser711(data_ptr);
         break;
     }
@@ -59,7 +57,7 @@ void PcanSubscriber::Parser111(const unsigned char *data_ptr)
     unsigned char byte1 = static_cast<unsigned char>(data_ptr[0] & 0xFF);
     double decimalValue = double(byte1) / 255.0;
     mBrake = decimalValue;
-    RCLCPP_INFO(this->get_logger(), "Brake: %f", mBrake);
+    // RCLCPP_INFO(this->get_logger(), "Brake: %f", mBrake);
 }
 
 void PcanSubscriber::Parser710(const unsigned char *data_ptr)
@@ -95,7 +93,7 @@ void PcanSubscriber::Parser710(const unsigned char *data_ptr)
     {
         mSteering = -(static_cast<double>(value) - middle) / diff;
     }
-    RCLCPP_INFO(this->get_logger(), "Steering: %f", mSteering);
+    // RCLCPP_INFO(this->get_logger(), "Steering: %f", mSteering);
 }
 
 void PcanSubscriber::Parser711(const unsigned char *data_ptr)
@@ -126,5 +124,5 @@ void PcanSubscriber::Parser711(const unsigned char *data_ptr)
     {
         mThrottle = (static_cast<double>(value) - min) / diff;
     }
-    RCLCPP_INFO(this->get_logger(), "Throttle: %f", mThrottle);
+    // RCLCPP_INFO(this->get_logger(), "Throttle: %f", mThrottle);
 }
