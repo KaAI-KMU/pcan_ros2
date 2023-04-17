@@ -3,6 +3,7 @@
 #include <functional>
 #include <memory>
 #include <string>
+#include <vector>
 
 // PCAN-Basic header
 #include "linux_interop.h"
@@ -10,6 +11,7 @@
 
 // ROS2 header
 #include "rclcpp/rclcpp.hpp"
+#include "std_msgs/msg/byte_multi_array.hpp"
 #include "std_msgs/msg/string.hpp"
 
 class PcanPublisher : public rclcpp::Node
@@ -20,7 +22,7 @@ public:
 
 private:
     rclcpp::TimerBase::SharedPtr mTimer;
-    rclcpp::Publisher<std_msgs::msg::String>::SharedPtr mPublisher;
+    rclcpp::Publisher<std_msgs::msg::ByteMultiArray>::SharedPtr mPublisher;
 
     // PCAN-Basic const value
     const TPCANHandle PcanHandle = PCAN_USBBUS1;
@@ -29,7 +31,8 @@ private:
     // PCAN-Basic function
     void ReadMessages();
     TPCANStatus ReadMessage();
-    void ProcessMessageCan(TPCANMsg msg);
+    void ValidateID(TPCANMsg msg);
+    void PublishCANMsg(TPCANMsg msg);
     std::string GetIdString(UINT32 id, TPCANMessageType msgType);
     std::string GetDataString(BYTE data[], TPCANMessageType msgType, int dataLength);
 };

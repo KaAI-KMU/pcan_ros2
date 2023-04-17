@@ -3,13 +3,13 @@
 using namespace std::chrono_literals;
 
 PcanPublisher::PcanPublisher()
-: Node("PCAN_Publisher")
+	: Node("PCAN_Publisher")
 {
-  
-  TPCANStatus stsResult;
 
-  stsResult = CAN_Initialize(PcanHandle, Bitrate);
-  if (stsResult != PCAN_ERROR_OK)
+	TPCANStatus stsResult;
+
+	stsResult = CAN_Initialize(PcanHandle, Bitrate);
+	if (stsResult != PCAN_ERROR_OK)
 	{
 		std::cout << "Can not initialize. Please check the defines in the code.\n";
 		std::cout << "\n";
@@ -19,9 +19,9 @@ PcanPublisher::PcanPublisher()
 		return;
 	}
 
-  mPublisher = this->create_publisher<std_msgs::msg::String>("topic", 10);
-  mTimer = this->create_wall_timer(
-    500ms, std::bind(&PcanPublisher::ReadMessages, this));
+	mPublisher = this->create_publisher<std_msgs::msg::ByteMultiArray>("topic", 10);
+	mTimer = this->create_wall_timer(
+		20ms, std::bind(&PcanPublisher::ReadMessages, this));
 }
 
 PcanPublisher::~PcanPublisher()
@@ -31,7 +31,7 @@ PcanPublisher::~PcanPublisher()
 
 void PcanPublisher::ReadMessages()
 {
-  TPCANStatus stsResult;
+	TPCANStatus stsResult;
 
 	// We read at least one time the queue looking for messages. If a message is found, we look again trying to
 	// find more. If the queue is empty or an error occurr, we get out from the dowhile statement.
@@ -45,32 +45,51 @@ void PcanPublisher::ReadMessages()
 
 TPCANStatus PcanPublisher::ReadMessage()
 {
-  TPCANMsg CANMsg;
-  TPCANTimestamp CANTimeStamp;
+	TPCANMsg CANMsg;
+	TPCANTimestamp CANTimeStamp;
 
-  // We execute the "Read" function of the PCANBasic
-  TPCANStatus stsResult = CAN_Read(PcanHandle, &CANMsg, &CANTimeStamp);
-  if (stsResult != PCAN_ERROR_QRCVEMPTY)
-	ProcessMessageCan(CANMsg);
+	// We execute the "Read" function of the PCANBasic
+	TPCANStatus stsResult = CAN_Read(PcanHandle, &CANMsg, &CANTimeStamp);
+	if (stsResult != PCAN_ERROR_QRCVEMPTY)
+		ValidateID(CANMsg);
+	// ProcessMessageCan(CANMsg);
 
-  return stsResult;
+	return stsResult;
 }
 
-void PcanPublisher::ProcessMessageCan(TPCANMsg msg)
+void PcanPublisher::ValidateID(TPCANMsg msg)
 {
-	auto id = std_msgs::msg::String();
-	auto message = std_msgs::msg::String();
+	const UINT32 id = msg.ID;
+	if (id == 0x710 ||
+		id == 0x711 ||
+		id == 0x111)
+	{
+		PublishCANMsg(msg);
+	}
+}
 
+void PcanPublisher::PublishCANMsg(TPCANMsg msg)
+{
+	// Logging CAN data
+	auto id = std_msgs::msg::String();
+	auto canData = std_msgs::msg::String();
 	id.data = GetIdString(msg.ID, msg.MSGTYPE);
-  	message.data = GetDataString(msg.DATA, msg.MSGTYPE, msg.LEN);
-	
-  	RCLCPP_INFO(this->get_logger(), "%s: CAN: %s", id.data.c_str(), message.data.c_str());
-  	mPublisher->publish(message);
+	canData.data = GetDataString(msg.DATA, msg.MSGTYPE, msg.LEN);
+	RCLCPP_INFO(this->get_logger(), "%s: CAN: %s", id.data.c_str(), canData.data.c_str());
+
+	// Publish CAN data
+	auto pubMsg = std_msgs::msg::ByteMultiArray();
+	std::vector<BYTE> data_vector(msg.DATA, msg.DATA + msg.LEN);
+	data_vector.push_back(static_cast<BYTE>((msg.ID >> 8) & 0xFF)); // 상위 8비트 추가
+	data_vector.push_back(static_cast<BYTE>(msg.ID & 0xFF));		// 하위 8비트 추가
+
+	pubMsg.data = data_vector;
+	mPublisher->publish(pubMsg);
 }
 
 std::string PcanPublisher::GetIdString(UINT32 id, TPCANMessageType msgType)
 {
-	char result[MAX_PATH] = { 0 };
+	char result[MAX_PATH] = {0};
 	if ((msgType & PCAN_MESSAGE_EXTENDED) == PCAN_MESSAGE_EXTENDED)
 	{
 		sprintf_s(result, sizeof(result), "%08Xh", id);
@@ -86,7 +105,7 @@ std::string PcanPublisher::GetDataString(BYTE data[], TPCANMessageType msgType, 
 		return "Remote Request";
 	else
 	{
-		char strTemp[MAX_PATH] = { 0 };
+		char strTemp[MAX_PATH] = {0};
 		std::string result = "";
 		for (int i = 0; i < dataLength; i++)
 		{
